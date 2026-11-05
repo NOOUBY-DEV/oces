@@ -13,9 +13,18 @@ pub fn tokenize_code(code : []u8) ![]u32
 {
         var token_list = std.ArrayList(u32).empty;
 
-        for (code, 0..) |char, code_index|
+        var index :u32 = 0; while (1)
         {
+                const char = code[index];
 
+                if (!is_stopper_char(char))
+                {
+
+                }
+                else
+                {
+                        index += 1;
+                }
         }
 }
 
