@@ -24,9 +24,9 @@ pub const ir_marker = struct
 };
 
 
-pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]isa.token_data
+pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembler.token_data
 {
-        var token_list = std.ArrayList(isa.token_data).empty;
+        var token_list = std.ArrayList(assembler.token_data).empty;
 
         defer token_list.deinit(assembler.allocator);
 
@@ -49,7 +49,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]isa.tok
 
         var code_index :usize = 0; while (code_index < ir_code.len) : (code_index += 1)
         {
-                var current_token_data = isa.token_data.new();
+                var current_token_data = assembler.token_data.new();
 
                 const marker = ir_code[code_index];
 
@@ -188,7 +188,7 @@ fn show_tokenizing_error(exact_error :tokenizing_error, ir_code :[]u8, line :usi
         }
 }
 
-fn get_register_value(ir_code :[]u8, start_index :usize) tokenizing_error!u32
+fn get_register_value(ir_code :[]u8, start_index :usize) tokenizing_error!usize
 {
         for (isa.register_data_list[0..]) |current_register_data|
         {
@@ -216,9 +216,9 @@ fn get_instruction_value(ir_code :[]u8, start_index :usize, instruction_data_ind
         return tokenizing_error.unknown_instruction;
 }
 
-fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!isa.token_value
+fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!assembler.token_value
 {
-        var value : isa.token_value = .{ .as_usize = 0 };
+        var value : assembler.token_value = undefined;
 
         var is_negative :bool = false;
 
@@ -231,9 +231,20 @@ fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!isa.toke
                         if (index > 0) return tokenizing_error.invalid_number;
 
                         is_negative = true;
+
+                        continue;
                 }
 
                 if (digit < '0' or digit > '9') return tokenizing_error.invalid_number;
+        }
+
+        if (is_negative)
+        {
+                value = .{ .as_isize = 0 };
+        }
+        else
+        {
+                value = .{ .as_usize = 0 };
         }
 
         for (ir_code[(start_index + 1)..]) |digit|
@@ -246,7 +257,7 @@ fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!isa.toke
 
                 if (is_negative)
                 {
-                        value.as_i32 = (value.as_i32 * 10) - digit_value;
+                        value.as_isize = (value.as_isize * 10) - digit_value;
                 }
                 else
                 {
@@ -413,10 +424,12 @@ fn print_ir_code(ir_code :[]u8) void
         std.debug.print("\n", .{});
 }
 
-fn print_token_list(token_list :[]isa.token_data) void
+fn print_token_list(token_list :[]assembler.token_data) void
 {
         for (token_list[0..]) |current_token_data|
         {
-                std.debug.print("|0x{x:0>16}| : |0x{x:0>16}| : |0x{x:0>16}|\n", .{@backingInt(current_token_data.type), current_token_data.value.as_usize, current_token_data.index});
+                const value :usize = @bitCast(current_token_data.value.as_usize);
+
+                std.debug.print("|0x{x:0>16}| : |0x{x:0>16}| : |0x{x:0>16}|\n", .{@backingInt(current_token_data.type), value, current_token_data.index});
         }
 }

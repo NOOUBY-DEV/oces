@@ -61,30 +61,10 @@ pub const instruction_data = struct
         expected_op2 : operand_type,
 };
 
-pub const token_data = struct
-{
-        type  :token_type,
-        value :token_value,
-        index :usize,
-
-        pub fn new() token_data
-        {
-                return .{.type = token_type.INSTRUCTION, .value = .{ .as_usize = 0 }, .index = 0};
-        }
-};
-
 pub const register_data = struct
 {
         value :registers,
         string : []const u8,
-};
-
-pub const token_value = union(enum)
-{
-        as_usize :usize,
-        as_u32 :u32,
-        as_i32 :i32,
-        as_f32 :f32,
 };
 
 pub const instruction_data_list = [_]instruction_data
