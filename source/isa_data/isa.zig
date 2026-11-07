@@ -1,11 +1,12 @@
 
-pub const token_type = enum(u32)
+pub const token_type = enum(usize)
 {
         INSTRUCTION = 0,
-        OPERAND,
-        COMMA,
-        COMMENT,
+        REGISTER,
+        VALUE,
         SYMBOL,
+        STRING,
+        _,
 };
 
 pub const operand_type = enum(u8)
@@ -26,6 +27,24 @@ pub const instructions = enum(u8)
         SUB,
         MUL,
         DIV,
+        _,
+};
+
+pub const registers = enum(u32)
+{
+        SP = 0,
+        SB,
+        LX,
+        LA,
+        X0,
+        X1,
+        X2,
+        X3,
+        X4,
+        X5,
+        X6,
+        X7,
+        _,
 };
 
 pub const expected_op_types = struct
@@ -34,17 +53,51 @@ pub const expected_op_types = struct
         op2 : u8,
 };
 
-pub const token_data = struct
+pub const instruction_data = struct
 {
-        type : token_type,
-        value : u32,
-        string : []u8,
-        expected_ops : expected_op_types,
+        value :instructions,
+        string : []const u8,
+        expected_op1 : operand_type,
+        expected_op2 : operand_type,
 };
 
-pub const token_data_List : []token_data = &[_]token_data
+pub const token_data = struct
 {
-        .{.INSTRUCTION, .EXIT, "EXIT", .{.ANY, .NON}},
-        .{.INSTRUCTION, .JMP, "JMP",  .{.ANY, .NON}},
-        .{.INSTRUCTION, .CALL, "CALL",  .{.ANY, .NON}},
+        type  :token_type,
+        value :token_value,
+        index :usize,
+
+        pub fn new() token_data
+        {
+                return .{.type = token_type.INSTRUCTION, .value = .{ .as_usize = 0 }, .index = 0};
+        }
+};
+
+pub const register_data = struct
+{
+        value :registers,
+        string : []const u8,
+};
+
+pub const token_value = union(enum)
+{
+        as_usize :usize,
+        as_u32 :u32,
+        as_i32 :i32,
+        as_f32 :f32,
+};
+
+pub const instruction_data_list = [_]instruction_data
+{
+        .{ .value = instructions.EXIT, .string = "EXIT", .expected_op1 = .ANY, .expected_op2 = .NON },
+        .{ .value = instructions.ADD, .string = "ADD", .expected_op1 = .REG, .expected_op2 = .ANY },
+        .{ .value = instructions.SUB, .string = "SUB", .expected_op1 = .REG, .expected_op2 = .ANY },
+};
+
+pub const register_data_list = [_]register_data
+{
+        .{ .value = registers.SP, .string = "@SP" },
+        .{ .value = registers.SB, .string = "@SB" },
+        .{ .value = registers.LX, .string = "@LX" },
+        .{ .value = registers.LA, .string = "@LA" },
 };

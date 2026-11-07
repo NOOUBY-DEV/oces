@@ -10,11 +10,16 @@ pub fn main() !void
 {
         defer _ = gpa.deinit();
 
-        const temp_code = "ADD %SP , $8 \n";
+        const temp_code = "ADD @SB , \n $8 \"HELLO WORLD I    AM VERITY\" \n";
 
         const temp_code_heap = try allocator.alloc(u8, temp_code.len);
         defer allocator.free(temp_code_heap);
         @memcpy(temp_code_heap, temp_code);
 
-        try assembler.assemble(temp_code_heap);
+        assembler.assemble(temp_code_heap)
+
+        catch
+        {
+                std.debug.print("ENDED \n", .{});
+        };
 }
