@@ -46,4 +46,5 @@ pub const token_data_List : []token_data = &[_]token_data
 {
         .{.INSTRUCTION, .EXIT, "EXIT", .{.ANY, .NON}},
         .{.INSTRUCTION, .JMP, "JMP",  .{.ANY, .NON}},
+        .{.INSTRUCTION, .CALL, "CALL",  .{.ANY, .NON}},
 };

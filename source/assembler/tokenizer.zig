@@ -9,64 +9,112 @@ const token_error = error
 };
 
 
+const cleaner_error = error
+{
+        string_improper_ending_with_newline,
+        string_improper_ending_with_nullchar,
+};
+
+
+const ir_marker = assembler.ir_marker;
+
+
 pub fn tokenize_code(code : []u8) ![]u32
 {
-        var token_list = std.ArrayList(u32).empty;
+        // var token_list = std.ArrayList(u32).empty;
+        const ir_code = clean_code(code);
+        defer assembler.allocator.free(ir_code);
+}
 
-        var index :u32 = 0; while (1)
+pub fn clean_code(code : []u8) ![]u8
+{
+        var cleaned_code = std.ArrayList(u8).empty;
+
+        const code_length = code.len - 1; // code.len includes '\0', which we dont count for
+
+        var index :usize = 0; while (index < code_length)
         {
                 const char = code[index];
 
-                if (!is_stopper_char(char))
-                {
-
-                }
-                else
+                if (is_space_char(char))
                 {
                         index += 1;
                 }
-        }
-}
 
-fn get_token_data_index(code : []u8, start_index : u32) token_error!u32
-{
-        const code_token_length = token_length(code, start_index);
-
-        for (isa.token_data_List[0..], 0..) |current_token_data, token_index|
-        {
-                if (current_token_data.string.len != code_token_length) continue;
-
-                var found = true;
-
-                for (code[start_index..], current_token_data.string[0..]) |code_char, token_char|
+                else if (is_special_char(char))
                 {
-                        if (code_char != token_char) found = false; break;
+                        if (char == ',')
+                        {
+                                const string :[3]u8 = .{ir_marker.string_start, ',', ir_marker.end};
+
+                                try cleaned_code.appendSlice(assembler.allocator, &string);
+
+                                index += 1;
+                        }
+
+                        else if (char == '#')
+                        {
+                                while (code[index] != '\n' and code[index] != 0) index += 1;
+                        }
+
+                        else if (char == '\"')
+                        {
+                                try cleaned_code.append(assembler.allocator, ir_marker.string_start);
+
+                                index += 1;
+
+                                while (index < code_length and code[index] != '\"') : (index += 1)
+                                {
+                                        const current_char = code[index];
+
+                                        if (current_char == '\n') return cleaner_error.string_improper_ending_with_newline;
+
+                                        if (current_char == 0) return cleaner_error.string_improper_ending_with_nullchar;
+
+                                        try cleaned_code.append(assembler.allocator, code[index]);
+                                }
+
+                                index += 1;
+
+                                try cleaned_code.append(assembler.allocator, ir_marker.end);
+                        }
                 }
 
-                if (found) return token_index;
+                else
+                {
+                        try cleaned_code.append(assembler.allocator, ir_marker.regular_start);
+
+                        while ( !( is_space_char(code[index]) or is_special_char(code[index]) ) ) : (index += 1)
+                        {
+                                try cleaned_code.append(assembler.allocator, code[index]);
+                        }
+
+                        try cleaned_code.append(assembler.allocator, ir_marker.end);
+                }
         }
 
-        return error.unknown_token;
-}
-
-fn token_length(code : []u8, start_index :u32) u32
-{
-        var final_index :u32 = 0;
-
-        return for (code[start_index..], 0..) |char, current_index|
+        if (cleaned_code.last() != ir_marker.end)
         {
-                final_index = current_index;
-
-                if (is_stopper_char(char)) break current_index;
+                try cleaned_code.append(assembler.allocator, ir_marker.end);
         }
-        else final_index;
+
+        return try cleaned_code.toOwnedSlice(assembler.allocator);
 }
 
-fn is_stopper_char(char :u8) bool
+fn is_space_char(char :u8) bool
 {
         return switch (char)
         {
-                ' ', '\t', '\n' , ',', 0 => true,
+                ' ', '\t', '\n' => true,
+                else => false,
+        };
+}
+
+fn is_special_char(char :u8) bool
+{
+        return switch (char)
+        {
+                '\"', '#', ',' => true,
                 else => false,
         };
 }

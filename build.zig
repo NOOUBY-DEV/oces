@@ -17,9 +17,6 @@ pub fn build(b: *std.Build) void
                 }  ),
         }  );
 
-        const install_artifact = b.addInstallArtifact( exe, .{ .dest_dir = .{ .override = .{ .custom = "../output" } },} );
-        b.getInstallStep().dependOn(&install_artifact.step);
-
         const run_cmd = b.addRunArtifact(exe);
         run_cmd.step.dependOn(b.getInstallStep());
 
