@@ -4,7 +4,8 @@ pub const token_type = enum(usize)
         INSTRUCTION = 0,
         REGISTER,
         VALUE,
-        SYMBOL,
+        COMMA,
+        NEWLINE,
         STRING,
         _,
 };
@@ -80,4 +81,14 @@ pub const register_data_list = [_]register_data
         .{ .value = registers.SB, .string = "@SB" },
         .{ .value = registers.LX, .string = "@LX" },
         .{ .value = registers.LA, .string = "@LA" },
+};
+
+pub const binary_instruction = packed struct
+{
+        instruction :u8,
+        op_1_type :u8,
+        op_2_type :u8,
+        _ : u8,
+        operand_1 :u32,
+        operand_2 :u32,
 };

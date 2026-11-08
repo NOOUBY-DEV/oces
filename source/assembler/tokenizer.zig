@@ -4,23 +4,23 @@ const isa = @import("../isa_data/isa.zig");
 const printing = @import("../tools/printing.zig");
 
 
-const tokenizing_error = error
+pub const tokenizing_error = error
 {
-        string_improper_ending_with_newline,
-        string_improper_ending_with_nullchar,
-        unknown_register,
-        unknown_instruction,
-        invalid_number,
-        memory_error,
-        no_error,
+        STRING_IMPROPER_ENDING_WITH_NEWLINE,
+        STRING_IMPROPER_ENDING_WITH_NULLCHAR,
+        UNKNOWN_REGISTER,
+        UNKNOWN_INSTRUCTION,
+        INVALID_NUMBER,
+        MEMORY_ERROR,
+        NO_ERROR,
 };
 
 
-pub const ir_marker = struct
+pub const ir_markers = struct
 {
-        pub const end :u8 = 1;
-        pub const regular_start :u8 = 2;
-        pub const string_start :u8 = 3;
+        pub const END :u8 = 1;
+        pub const REGULAR_START :u8 = 2;
+        pub const STRING_START :u8 = 3;
 };
 
 
@@ -36,7 +36,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
         {
                 std.debug.print("[OCES ASSEMBLER ERROR] : heap memory error \n", .{});
 
-                return tokenizing_error.memory_error;
+                return tokenizing_error.MEMORY_ERROR;
         };
 
         ir_code_ptr.* = ir_code;
@@ -45,7 +45,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
 
         var line :usize = 1;
 
-        var caught_syntax_error :tokenizing_error = tokenizing_error.no_error;
+        var caught_syntax_error :tokenizing_error = tokenizing_error.NO_ERROR;
 
         var code_index :usize = 0; while (code_index < ir_code.len) : (code_index += 1)
         {
@@ -53,7 +53,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
 
                 const marker = ir_code[code_index];
 
-                if (marker == ir_marker.regular_start)
+                if (marker == ir_markers.REGULAR_START)
                 {
                         code_index += 1;
 
@@ -91,7 +91,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
 
                                 '\n' =>
                                 {
-                                        current_token_data.type = isa.token_type.SYMBOL;
+                                        current_token_data.type = isa.token_type.NEWLINE;
                                         current_token_data.value.as_usize = '\n';
 
                                         line += 1;
@@ -99,7 +99,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
 
                                 ',' =>
                                 {
-                                        current_token_data.type = isa.token_type.SYMBOL;
+                                        current_token_data.type = isa.token_type.COMMA;
                                         current_token_data.value.as_usize = ',';
                                 },
 
@@ -122,7 +122,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
                                 }
                         }
                 }
-                else if (marker == ir_marker.string_start)
+                else if (marker == ir_markers.STRING_START)
                 {
                         current_token_data.type = isa.token_type.STRING;
                         current_token_data.value.as_usize = code_index + 1;
@@ -134,13 +134,13 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
                 {
                         std.debug.print("[OCES ASSEMBLER ERROR] : heap memory error \n", .{});
 
-                        return tokenizing_error.memory_error;
+                        return tokenizing_error.MEMORY_ERROR;
                 };
 
-                while (ir_code[code_index] != ir_marker.end)code_index += 1;
+                while (ir_code[code_index] != ir_markers.END)code_index += 1;
         }
 
-        if (caught_syntax_error != tokenizing_error.no_error)
+        if (caught_syntax_error != tokenizing_error.NO_ERROR)
         {
                 show_tokenizing_error(caught_syntax_error, ir_code, line, code_index);
 
@@ -153,7 +153,7 @@ pub fn tokenize_code(code : []u8, ir_code_ptr :*[]u8) tokenizing_error![]assembl
         {
                 std.debug.print("{s}[OCES ASSEMBLER ERROR]{s} : heap memory error \n", .{printing.red, printing.reset});
 
-                return tokenizing_error.memory_error;
+                return tokenizing_error.MEMORY_ERROR;
         };
 
         print_token_list(final_token_list);
@@ -167,9 +167,9 @@ fn show_tokenizing_error(exact_error :tokenizing_error, ir_code :[]u8, line :usi
 
         const error_string = switch (exact_error)
         {
-                tokenizing_error.unknown_register => "unknown register",
-                tokenizing_error.unknown_instruction => "unknown instruction",
-                tokenizing_error.invalid_number => "invalid number",
+                tokenizing_error.UNKNOWN_REGISTER => "unknown register",
+                tokenizing_error.UNKNOWN_INSTRUCTION => "unknown instruction",
+                tokenizing_error.INVALID_NUMBER => "invalid number",
                 else => "unknown"
         };
 
@@ -179,7 +179,7 @@ fn show_tokenizing_error(exact_error :tokenizing_error, ir_code :[]u8, line :usi
         {
                 std.debug.print("+---  '", .{});
 
-                var index = code_index; while (ir_code[index] != ir_marker.end) : (index += 1)
+                var index = code_index; while (ir_code[index] != ir_markers.END) : (index += 1)
                 {
                         std.debug.print("{c}", .{ir_code[index]});
                 }
@@ -194,11 +194,11 @@ fn get_register_value(ir_code :[]u8, start_index :usize) tokenizing_error!usize
         {
                 if (ir_token__equal__token(ir_code, start_index, current_register_data.string))
                 {
-                        return @backingInt(current_register_data.value);
+                        return @intFromEnum(current_register_data.value);
                 }
         }
 
-        return tokenizing_error.unknown_register;
+        return tokenizing_error.UNKNOWN_REGISTER;
 }
 
 fn get_instruction_value(ir_code :[]u8, start_index :usize, instruction_data_index_ptr :*u8) tokenizing_error!u8
@@ -209,11 +209,11 @@ fn get_instruction_value(ir_code :[]u8, start_index :usize, instruction_data_ind
                 {
                         instruction_data_index_ptr.* = @intCast(instruction_data_index);
 
-                        return @backingInt(current_instruction_data.value);
+                        return @intFromEnum(current_instruction_data.value);
                 }
         }
 
-        return tokenizing_error.unknown_instruction;
+        return tokenizing_error.UNKNOWN_INSTRUCTION;
 }
 
 fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!assembler.token_value
@@ -224,18 +224,18 @@ fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!assemble
 
         for (ir_code[(start_index + 1)..], 0..) |digit, index|
         {
-                if (digit == ir_marker.end) break;
+                if (digit == ir_markers.END) break;
 
                 if (digit == '-')
                 {
-                        if (index > 0) return tokenizing_error.invalid_number;
+                        if (index > 0) return tokenizing_error.INVALID_NUMBER;
 
                         is_negative = true;
 
                         continue;
                 }
 
-                if (digit < '0' or digit > '9') return tokenizing_error.invalid_number;
+                if (digit < '0' or digit > '9') return tokenizing_error.INVALID_NUMBER;
         }
 
         if (is_negative)
@@ -249,7 +249,7 @@ fn get_number_value(ir_code :[]u8, start_index :usize) tokenizing_error!assemble
 
         for (ir_code[(start_index + 1)..]) |digit|
         {
-                if (digit == ir_marker.end) break;
+                if (digit == ir_markers.END) break;
 
                 if (digit == '-') continue;
 
@@ -274,7 +274,7 @@ fn ir_token__equal__token(ir_code :[]u8, start_index :usize, token_string :[]con
         {
                 const code_char = ir_code[code_index];
 
-                if (code_char == ir_marker.end and token_char == 0)
+                if (code_char == ir_markers.END and token_char == 0)
                 {
                         break;
                 }
@@ -291,6 +291,29 @@ pub fn sanitize_to_ir_code(code : []u8) ![]u8
 
         const code_length = code.len - 1; // code.len includes '\0', which we dont count for
 
+        const local = struct
+        {
+                inline fn ir_code_append(ir_code_ref :*std.ArrayList(u8), char : u8) !void
+                {
+                        ir_code_ref.*.append(assembler.allocator, char)
+
+                        catch
+                        {
+                                return tokenizing_error.MEMORY_ERROR;
+                        };
+                }
+
+                inline fn ir_code_append_slice(ir_code_ref :*std.ArrayList(u8), string : []const u8) !void
+                {
+                        ir_code_ref.*.appendSlice(assembler.allocator, string)
+
+                        catch
+                        {
+                                return tokenizing_error.MEMORY_ERROR;
+                        };
+                }
+        };
+
         var index :usize = 0; while (index < code_length)
         {
                 const char = code[index];
@@ -304,18 +327,18 @@ pub fn sanitize_to_ir_code(code : []u8) ![]u8
                 {
                         if (char == ',')
                         {
-                                const string :[3]u8 = .{ir_marker.regular_start, ',', ir_marker.end};
+                                const string = &[_]u8{ir_markers.REGULAR_START, ',', ir_markers.END};
 
-                                try ir_code.appendSlice(assembler.allocator, &string);
+                                try local.ir_code_append_slice(&ir_code, string);
 
                                 index += 1;
                         }
 
                         else if (char == '\n')
                         {
-                                const string :[3]u8 = .{ir_marker.regular_start, '\n', ir_marker.end};
+                                const string = &[_]u8{ir_markers.REGULAR_START, '\n', ir_markers.END};
 
-                                try ir_code.appendSlice(assembler.allocator, &string);
+                                try local.ir_code_append_slice(&ir_code, string);
 
                                 index += 1;
                         }
@@ -327,7 +350,7 @@ pub fn sanitize_to_ir_code(code : []u8) ![]u8
 
                         else if (char == '\"')
                         {
-                                try ir_code.append(assembler.allocator, ir_marker.string_start);
+                                try local.ir_code_append(&ir_code, ir_markers.STRING_START);
 
                                 index += 1;
 
@@ -335,38 +358,38 @@ pub fn sanitize_to_ir_code(code : []u8) ![]u8
                                 {
                                         const current_char = code[index];
 
-                                        if (current_char == '\n') return tokenizing_error.string_improper_ending_with_newline;
+                                        if (current_char == '\n') return tokenizing_error.STRING_IMPROPER_ENDING_WITH_NEWLINE;
 
-                                        if (current_char == 0) return tokenizing_error.string_improper_ending_with_nullchar;
+                                        if (current_char == 0) return tokenizing_error.STRING_IMPROPER_ENDING_WITH_NULLCHAR;
 
-                                        try ir_code.append(assembler.allocator, code[index]);
+                                        try local.ir_code_append(&ir_code, current_char);
                                 }
 
                                 index += 1;
 
-                                try ir_code.append(assembler.allocator, ir_marker.end);
+                                try local.ir_code_append(&ir_code, ir_markers.END);
                         }
                 }
 
                 else
                 {
-                        try ir_code.append(assembler.allocator, ir_marker.regular_start);
+                        try local.ir_code_append(&ir_code, ir_markers.REGULAR_START);
 
                         while ( !( is_space_char(code[index]) or is_special_char(code[index]) ) ) : (index += 1)
                         {
-                                try ir_code.append(assembler.allocator, code[index]);
+                                try local.ir_code_append(&ir_code, code[index]);
                         }
 
-                        try ir_code.append(assembler.allocator, ir_marker.end);
+                        try local.ir_code_append(&ir_code, ir_markers.END);
                 }
         }
 
-        if (ir_code.last() != ir_marker.end)
+        if (ir_code.last() != ir_markers.END)
         {
-                try ir_code.append(assembler.allocator, ir_marker.end);
+                try local.ir_code_append(&ir_code, ir_markers.END);
         }
 
-        const final_ir_code = try ir_code.toOwnedSlice(assembler.allocator);
+        const final_ir_code = ir_code.toOwnedSlice(assembler.allocator) catch { return tokenizing_error.MEMORY_ERROR; };
 
         return final_ir_code;
 }
@@ -393,12 +416,12 @@ fn print_ir_code(ir_code :[]u8) void
 {
         for (ir_code[0..], 0..) |char, index|
         {
-                if (char == ir_marker.regular_start or char == ir_marker.string_start)
+                if (char == ir_markers.REGULAR_START or char == ir_markers.STRING_START)
                 {
                         std.debug.print("|", .{});
                 }
 
-                else if (char == ir_marker.end)
+                else if (char == ir_markers.END)
                 {
                         if (index + 1 == ir_code.len)
                         {
@@ -430,6 +453,6 @@ fn print_token_list(token_list :[]assembler.token_data) void
         {
                 const value :usize = @bitCast(current_token_data.value.as_usize);
 
-                std.debug.print("|0x{x:0>16}| : |0x{x:0>16}| : |0x{x:0>16}|\n", .{@backingInt(current_token_data.type), value, current_token_data.index});
+                std.debug.print("|0x{x:0>16}| : |0x{x:0>16}| : |0x{x:0>16}|\n", .{@intFromEnum(current_token_data.type), value, current_token_data.index});
         }
 }

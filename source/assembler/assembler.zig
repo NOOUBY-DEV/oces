@@ -12,7 +12,7 @@ pub const allocator = gpa.allocator();
 
 pub const assembler_error = error
 {
-        tokenizer_error,
+        TOKENIZER_ERROR,
 };
 
 pub const token_value = extern union
@@ -45,7 +45,7 @@ pub fn assemble(code :[]u8) assembler_error!void //caller_allocator :std.heap.Al
 
         catch
         {
-                return assembler_error.tokenizer_error;
+                return assembler_error.TOKENIZER_ERROR;
         };
 
         defer
